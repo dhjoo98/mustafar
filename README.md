@@ -1,12 +1,11 @@
 # Mustafar: Promoting Unstructured Sparsity for KV Cache Pruning in LLM Inference
 
-Include High-level explanation 
 
-Add images. 
+<p align="center">
+  <img src="figs/top_level.png" alt="MUSTAFAR Architecture" width="600">
+</p>
 
-<!-- 
-![MUSTAFAR Architecture](images/mustafar_diagram.png)
--->
+Lord Vader approves of unstructured sparsity in KV cache. 
 
 ---
 
@@ -26,7 +25,7 @@ This repository provides:
 
 - **Dependency setup** scripts to reproducibly install/build all required Python packages and CUDA kernels.  
 - **LongBench Evaluation** to reproduce the accuracy evaluations of the paper.  
-- **Kernel Evaluation** to measure latency of KV cache pruning, Mustafar batched SpMV kernel, and Triton Compression kernel to compare with dense batched MV.  
+- **Kernel Evaluation** to measure latency and memory usage of LLM inference with Mustafar Attention Kernel  
 
 ---
 
@@ -54,9 +53,7 @@ This repository provides:
 3. Build the CUDA kernel
 
    ```bash
-   cd /kernel
-   source Init_Mustafar.sh  
-   cd ../build  
+   cd /kernel/build  
    make 
    ```
    Optionally, speedup build with 
@@ -65,7 +62,7 @@ This repository provides:
    ```
    where N is the number of build process 
 
-4. Register the CUDA kernel as a PyTorch extension.
+4. Install the PyTorch extension with
 
    ```bash
    cd ../kernel_wrapper
@@ -78,9 +75,8 @@ This repository provides:
 
 This component runs end-to-end model benchmarks on the LongBench suite.
 
-1. **/accuracy_eval** directory contains the necessary scripts and pruning method speicifications. 
-
-    Under `/model`, contains several pruning methods for Llama, and **Per-token, Magnitude-based Pruning** for Mistral-7B-Instruct-v0.2.  
+1. Under `/model`, contains several pruning methods for Llama, and **Per-token, Magnitude-based Pruning** for Mistral-7B-Instruct-v0.2.  
+    
     Following explains the naming convention: 
     
     **K/V[t/c]_Mag/Opt**: denotes the combination of pruning strategy explored in the paper. 
@@ -113,7 +109,6 @@ This component runs end-to-end model benchmarks on the LongBench suite.
     Before running, go to `/pred_long_bench.py` Line 139. to select the pruning method to test on. 
 
    ```bash
-   cd /accuracy/eval
    bash long_test.sh ${k_sparsity} ${v_sparsity} ${model} ${mode}
    ```
     **k_sparsity** / **v_sparsity** refers to the target sparsity for KV cache. I.e., 50% sparsity is 0.5, 70% sparsity is 0.7
@@ -135,7 +130,7 @@ This component runs end-to-end model benchmarks on the LongBench suite.
    ```bash
    python eval_long_bench.py --model ${subdir_name}
    ```
-    **subdir_name** refers to the generated subdirectory under `/pred` for each run. i.e. **Llama-2-7b-hf_4096_K_0.7_V_0.0_group32** 
+    **subdir_name** refers to the generated subdirectory under `/pred` for each run. i.e. **Llama-2-7b-hf_4096_K_0.7_V_0.7** 
 ---
 
 ## Part III: Kernel Evaluation
@@ -144,42 +139,22 @@ This component runs end-to-end model benchmarks on the LongBench suite.
 
 **Make sure that the CUDA kernel is built and ported to python with steps from** [Installation](#part-i-install-dependencies)  
 
-1. **Run** the kernel evaluation script:
+1. To evaluate on Longbench with the Mustafar Sparse Attention Kernel, go to `/pred_long_bench.py` Line 139. to select the 'kernel' method to test on. 
 
-```bash
-cd /kernel 
-python kernel_evaluation.py
-```
+    Then, follow the steps of [Part2](#part-ii-longbench-evaluation) 
 
-The evaluation script first tests the correctenss of bitmap-based compression + batched SpMV with dense cublas batched MV. 
+2. To evaluate the latency and memory consumption of the Mustafar Sparse Attention Kernel, run
 
-```bash
-#Example output
----------------------------------- Correctness Check --------------------------------
-Are results equal? True
-```
+    ```bash
+    python mem_spd_test.py
+    ```
+    Input and Generation sequence length, as well as batch size can be controlled within the python code. 
 
-Then we compare the execution latency of dense attention versus Mustafar Sparse Attention formulation to show that Mustafar does not incur additional latency compared to dense inference. 
+    We currently support Llama-2 7B and Llama-3 8B for our kernel. Additional model support will soon be released. 
+    
 
-```bash
-#Example output
----------------------------------- Execution Time Check --------------------------------
-Dense Batched MM computation time: 0.1595020294189453 ms
-50% sparsity: Prune and Compression time per token: 0.00512157566845417 ms
-Batched SpMV computation time: 0.1380443572998047 ms
-70% sparsity: Prune and Compression time per token: 0.0023152679204940796 ms
-Batched SpMV computation time: 0.08440017700195312 ms
+## Acknowledgments
 
-```
+This repository is heavily influenced by the excellent work in Xia et al. [FlashLLM](https://github.com/AlibabaResearch/flash-llm) and Liu et al. [KIVI](https://github.com/jy-yuan/KIVI). Portions of the codebase and design were adapted and modified to suit Mustfar.
 
-Finally, the evaluation script saves the compressed KV cache as a file. Check the memory size and compare with a dense KV cache. 
-
-```bash
-#sample memory footprint in system. 
-Dense KV cache: 33.6MB 
-50% sparsity compressed: 22.0MB
-70% sparsity compressed: 15.5MB
-```
-
----
-
+We are grateful to the authors for their contributions to the open-source community.

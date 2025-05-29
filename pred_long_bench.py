@@ -108,6 +108,8 @@ if __name__ == '__main__':
     model_name = model_args.model_name_or_path.split("/")[-1]
     # dtype = torch.bfloat16 if training_args.bf16 else torch.float
     dtype = torch.float16
+
+
     
     if 'llama' in model_args.model_name_or_path.lower() or 'longchat' in model_args.model_name_or_path.lower():
         config = LlamaConfig.from_pretrained(model_args.model_name_or_path)
@@ -116,7 +118,7 @@ if __name__ == '__main__':
                                             use_fast=False, 
                                             trust_remote_code=True, 
                                             #tokenizer_type='llama',
-                                            #cache_dir=cache_dir)
+                                            #cache_dir=cache_dir,
                                             )
                                             # model_max_length=training_args.model_max_length)
     elif 'mistral' in model_args.model_name_or_path.lower():
@@ -143,6 +145,9 @@ if __name__ == '__main__':
             #from models.llama_mustafar_Kt_Opa_Vt_Mag import LlamaForCausalLM_MUSTAFAR
             #from models.llama_think import LlamaForCausalLM_MUSTAFAR
             #from models.llama_thinv import LlamaForCausalLM_MUSTAFAR
+            
+            #kernel version. 
+            #from models.llama_mustafar_kernel import LlamaForCausalLM_MUSTAFAR
 
 
             #print("Using the V-per-token pruning model.")
@@ -154,7 +159,6 @@ if __name__ == '__main__':
             model = LlamaForCausalLM_MUSTAFAR.from_pretrained(
                 pretrained_model_name_or_path=model_args.model_name_or_path,
                 config=config,
-                #cache_dir=training_args.cache_dir,
                 #cache_dir=cache_dir,
                 torch_dtype=dtype,
                 low_cpu_mem_usage=True,
@@ -194,7 +198,7 @@ if __name__ == '__main__':
             "gov_report", "qmsum", "multi_news", "trec", "triviaqa", "samsum", \
             "passage_count", "passage_retrieval_en", "lcc", "repobench-p"]
     
-    #datasets = ["qasper"]
+    datasets = ["narrativeqa"]
 
     # we design specific prompt format and max generation length for each task, feel free to modify them to optimize model output
     dataset2prompt = json.load(open("config/dataset2prompt.json", "r"))
@@ -211,14 +215,14 @@ if __name__ == '__main__':
         for dataset in datasets:
             if data_args.e:
                 data = load_dataset('THUDM/LongBench', f"{dataset}_e", split='test')
-                if not os.path.exists(f"pred_e/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}_group{model_args.group_size}"):
-                    os.makedirs(f"pred_e/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}_group{model_args.group_size}")
-                out_path = f"pred_e/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}_group{model_args.group_size}/{dataset}.jsonl"
+                if not os.path.exists(f"pred_e/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}"):
+                    os.makedirs(f"pred_e/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}")
+                out_path = f"pred_e/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}/{dataset}.jsonl"
             else:
                 data = load_dataset('THUDM/LongBench', dataset, split='test')
-                if not os.path.exists(f"pred/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}_group{model_args.group_size}"):
-                    os.makedirs(f"pred/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}_group{model_args.group_size}")
-                out_path = f"pred/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}_group{model_args.group_size}/{dataset}.jsonl"
+                if not os.path.exists(f"pred/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}"):
+                    os.makedirs(f"pred/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}")
+                out_path = f"pred/{model_name}_{max_length}_K_{model_args.k_sparsity}_V_{model_args.v_sparsity}/{dataset}.jsonl"
             prompt_format = dataset2prompt[dataset]
             max_gen = dataset2maxlen[dataset]
             preds = get_pred(model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name)
