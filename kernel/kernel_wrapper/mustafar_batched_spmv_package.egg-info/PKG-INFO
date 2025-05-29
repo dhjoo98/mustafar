@@ -1,4 +1,0 @@
-Metadata-Version: 2.1
-Name: mustafar_batched_spmv_package
-Version: 0.0.0
-Requires-Dist: torch

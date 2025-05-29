@@ -1,8 +1,0 @@
-mustafar_wrapper.cu
-pybind.cpp
-setup.py
-mustafar_batched_spmv_package.egg-info/PKG-INFO
-mustafar_batched_spmv_package.egg-info/SOURCES.txt
-mustafar_batched_spmv_package.egg-info/dependency_links.txt
-mustafar_batched_spmv_package.egg-info/requires.txt
-mustafar_batched_spmv_package.egg-info/top_level.txt
